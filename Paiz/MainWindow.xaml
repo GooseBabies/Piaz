@@ -1,0 +1,137 @@
+﻿<adonisControls:AdonisWindow x:Class="Paiz.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:adonisControls="clr-namespace:AdonisUI.Controls;assembly=AdonisUI"
+        xmlns:adonisExtensions="clr-namespace:AdonisUI.Extensions;assembly=AdonisUI"
+        xmlns:local="clr-namespace:Paiz"
+        mc:Ignorable="d"
+        Title="Podobo" Height="900" Width="1600" UseLayoutRounding="True" Loaded="Window_Loaded" Closing="Window_Closing" PreviewKeyDown="Window_PreviewKeyDown" Icon="/PP.ico">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Nothing.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.Style>
+        <Style TargetType="Window" BasedOn="{StaticResource {x:Type Window}}"/>
+    </Window.Style>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="2"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="26"/>
+            </Grid.ColumnDefinitions>
+            <Menu x:Name="Menubar" Visibility="Hidden" Grid.Column="0">
+                <MenuItem x:Name="LastVideoMenuItem" Header="Last File" Height="20" BorderThickness="0" Click="LastVideoMenuItem_Click"/>
+                <MenuItem x:Name="RandomMenuItem" Header="Random File" HorizontalContentAlignment="Left" BorderThickness="0" Click="RandomMenuItem_Click"/>
+                <MenuItem x:Name="FirstUntaggedItem" Header="First Untagged" BorderThickness="0" Click="FirstUntaggedItem_Click"/>
+                <MenuItem x:Name="FirstUnratedItem" Header="First Unrated" BorderThickness="0" Click="FirstUnratedItem_Click"/>
+                <MenuItem x:Name="FirstUnLinkedItem" Header="First Unlinked" BorderThickness="0" Click="FirstUnLinkedItem_Click"/>
+                <MenuItem x:Name="TagManagerMenuItem" Header="All Tags" BorderThickness="0" Click="TagManagerMenuItem_Click"/>
+                <MenuItem x:Name="Slideshow" Header="Slideshow" BorderThickness="0" Click="Slideshow_Click"/>
+                <!--<MenuItem x:Name="ExportMenuItem" Header="Export Database" Click="ExportMenuItem_Click" Foreground="White"/>-->
+                <MenuItem x:Name="IQDBItem" Header="IQDB" BorderThickness="0" Click="IQDBItem_Click"/>
+                <MenuItem x:Name="DupesProcessing" Header="Dupes Processing" BorderThickness="0" Click="DupesProcessing_Click"/>
+                <MenuItem x:Name="DupeComparison" Header="Dupes" BorderThickness="0" Click="DupeComparison_Click"/>
+                <MenuItem x:Name="ImportFiles" Header="Import Files" BorderThickness="0" Click="ImportFiles_Click"/>
+                <MenuItem x:Name="TextFFME" Header="FFME" BorderThickness="0" Click="TextFFME_Click"/>
+            </Menu>
+            
+            <Button x:Name="CloseTab" Content="X" Width="26" Grid.Column="1" HorizontalAlignment="Right" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" BorderThickness="0" Click="CloseTab_Click"/>
+        </Grid>
+        <TextBox x:Name="PasswordBox" Width="54" Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center" TextChanged="PasswordBox_TextChanged"/>
+        <TabControl x:Name="TabBar" Grid.Row="2" UseLayoutRounding="True" Visibility="Hidden">
+            <TabItem Header="Main" MouseDown="TabItem_MouseDown">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="32" />
+                        <RowDefinition Height="32" />
+                        <RowDefinition Height="4" />
+                        <RowDefinition Height="1*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="80"/>
+                        </Grid.ColumnDefinitions>
+                        <Label x:Name="SearchCount" Grid.Column="1" Width="40" Margin="10,0,10,0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content=""/>
+                        <Button x:Name="AcceptSearch" Grid.Column="2" Width="60" Margin="10,0,10,0" Content="Search" Click="AcceptSearch_Click"/>
+                        <Button x:Name="ResetSearch" Grid.Column="3" Width="60" Margin="10,0,10,0" Content="Reset" Click="ResetSearch_Click"/>
+                    </Grid>
+                    <WrapPanel x:Name="QuickSearchOptions" VerticalAlignment="Center" Grid.Row="1" >
+                        <Label Content="Quick Searches: " VerticalContentAlignment="Center" Margin="4,0,4,0"/>
+                        <Button x:Name="VideoSearch" Content="Only Video" VerticalContentAlignment="Center" Width="70" Click="VideoSearch_Click" Margin="4,0,4,0"/>
+                        <Border BorderBrush="LightGray" BorderThickness="1" Margin="4,0,4,0"/>
+                        <Label Content="filename: " VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="4,0,4,0"/>
+                        <TextBox x:Name="QuickSearchFilename" Width="120" VerticalContentAlignment="Center" PreviewKeyUp="QuickSearchFilename_PreviewKeyUp" Margin="4,0,4,0"/>
+                        <Border BorderBrush="LightGray" BorderThickness="1" Margin="4,0,4,0"/>
+                        <Button x:Name="QuickNotTagged" Content="Not Tagged" VerticalContentAlignment="Center" Width="70" Click="QuickNotTagged_Click" Margin="4,0,4,0"/>
+                        <Border BorderBrush="LightGray" BorderThickness="1" Margin="4,0,4,0"/>
+                        <Label Content="duration: " VerticalAlignment="Center" VerticalContentAlignment="Center" Margin="4,0,4,0"/>
+                        <ComboBox x:Name="DurationCombo" VerticalContentAlignment="Center" SelectedIndex="0">
+                            <ComboBoxItem Content="&gt;="/>
+                            <ComboBoxItem Content="&lt;="/>
+                            <ComboBoxItem Content="="/>
+                            <ComboBoxItem Content="~"/>
+                        </ComboBox>
+                        <TextBox x:Name="QuickSearchDuration" Width="120" VerticalContentAlignment="Center" PreviewKeyUp="QuickSearchDuration_PreviewKeyUp" Margin="4,0,4,0"/>
+                    </WrapPanel>
+                    <Border BorderThickness="0 1 0 0" Grid.Row="2" BorderBrush="LightGray"/>
+                    <ScrollViewer x:Name="Scroller" Grid.Row="3" Height="auto">
+                        <Grid x:Name="PanelGrid">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="1*"/>
+                                <RowDefinition Height="40"/>
+                            </Grid.RowDefinitions>
+                            <Label x:Name="Chickens" Grid.Row="0" HorizontalAlignment="Center" VerticalAlignment="Center" Content="Nobody Here but Us Chickens!" Visibility="Hidden"/>
+                            <WrapPanel x:Name="ResultsPanel" Grid.Row="0" HorizontalAlignment="Center">
+                            </WrapPanel>
+                            <Grid x:Name="BottomNavGrid" Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="BottomFirstPage" Height="36" Width="120" Grid.Column="0" Click="FirstPage_Clicked">
+                                    <Grid>
+                                        <Polygon x:Name="Home1" Points="5,0 9,0 4,10 9,20 5,20 0,10" Fill="White"/>
+                                        <Polygon x:Name="Home2" Points="13,0 17,0 12,10 17,20 13,20 8,10" Fill="White"/>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="BottomPrevPage" Height="36" Width="120" Grid.Column="1" Click="PrevPage_Clicked">
+                                    <Polygon x:Name="Prev1" Points="5,0 9,0 4,10 9,20 5,20 0,10" Fill="White"/>
+                                </Button>
+                                <TextBox x:Name="BottomPagenumber" Height="26" Width="40" Grid.Column="2" CaretBrush="White" Text="" PreviewKeyUp="BottomPagenumber_PreviewKeyUp" HorizontalAlignment="Right" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" GotMouseCapture="BottomPagenumber_GotMouseCapture" Foreground="White" Background="#858585"/>
+                                <Label x:Name="BottomPageCount" Height="26" Width="100" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Content=" / (0)" Foreground="White"/>
+                                <Button x:Name="BottomNextPage" Height="36" Width="120" Grid.Column="4" Click="NextPage_Clicked">
+                                    <Polygon x:Name="Next1" Points="0,0 4,0 9,10 4,20 0,20 5,10" Fill="White"/>
+                                </Button>
+                                <Button x:Name="BottomLastPage" Height="36" Width="120" Grid.Column="5" Click="LastPage_Clicked">
+                                    <!--Foreground="White" Background="#252525" BorderThickness="1" BorderBrush="#858585"-->
+                                    <Grid>
+                                        <Polygon x:Name="End1" Points="0,0 4,0 9,10 4,20 0,20 5,10" Fill="White"/>
+                                        <Polygon x:Name="End2" Points="8,0 12,0 17,10 12,20 8,20 13,10" Fill="White"/>
+                                    </Grid>
+                                </Button>
+                            </Grid>
+                        </Grid>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+        </TabControl>        
+    </Grid>
+</adonisControls:AdonisWindow>

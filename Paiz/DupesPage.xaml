@@ -1,0 +1,45 @@
+﻿<UserControl x:Class="Paiz.DupesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Paiz"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="4*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="100"/>
+                <RowDefinition Height="40"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" BorderThickness="1" BorderBrush="LightGray">
+                <TextBlock x:Name="ImageDetails"/>
+            </Border>
+            <Grid Grid.Row="1" VerticalAlignment="Bottom">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="PreviousVideoButton" Grid.Column="0" Height="36" Width="100" BorderThickness="1" BorderBrush="#858585" Click="Button_Click">
+                    <Polygon x:Name="Prev1" Points="5,0 9,0 4,10 9,20 5,20 0,10" Fill="Black"/>
+                </Button>
+                <Button x:Name="NextVideoButton" Grid.Column="2" Height="36" Width="100" BorderThickness="1" BorderBrush="#858585" Click="NextVideoButton_Click">
+                    <Polygon x:Name="Next1" Points="0,0 4,0 9,10 4,20 0,20 5,10" Fill="Black"/>
+                </Button>
+            </Grid>
+        </Grid>
+        <Grid Grid.Column="1" PreviewMouseWheel="Grid_PreviewMouseWheel" MouseRightButtonDown="Grid_MouseRightButtonDown" MouseLeftButtonDown="Grid_MouseLeftButtonDown">
+            <Border ClipToBounds="True" x:Name="MediaBorder" BorderBrush="Black" BorderThickness="2" Background="Black" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Visible" Panel.ZIndex="1">
+                <Image x:Name="DupesDisplay" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" Source="{Binding Image}" RenderOptions.BitmapScalingMode="Fant" Visibility="Visible"/>
+            </Border>
+            <Border ClipToBounds="True" x:Name="MediaBorder2" BorderBrush="DarkGray" BorderThickness="2" Background="DarkGray" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Visibility="Hidden" Panel.ZIndex="1">
+                <Image x:Name="DupesDisplay2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" Source="{Binding Image}" RenderOptions.BitmapScalingMode="Fant" Visibility="Hidden"/>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

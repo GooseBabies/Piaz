@@ -1,0 +1,37 @@
+﻿<adonisControls:AdonisWindow x:Class="Paiz.TagMap"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:adonisControls="clr-namespace:AdonisUI.Controls;assembly=AdonisUI"
+        xmlns:local="clr-namespace:Paiz"
+        mc:Ignorable="d"
+        Title="Booru Tag Map" Height="800" Width="500">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Nothing.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.Style>
+        <Style TargetType="Window" BasedOn="{StaticResource {x:Type Window}}"/>
+    </Window.Style>
+    <Grid>
+        <ScrollViewer>
+            <StackPanel x:Name="TagPanel">
+                <Grid Margin="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <Label x:Name="BooruLabel" Content="Booru Tag" Grid.Column="1"/>
+                    <Label x:Name="PodoboLabel" Content="Podobo Tag" Grid.Column="3"/>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</adonisControls:AdonisWindow>

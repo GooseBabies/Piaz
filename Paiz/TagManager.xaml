@@ -1,0 +1,184 @@
+﻿<UserControl x:Class="Paiz.TagManager"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Paiz"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800">
+
+    <Grid Background="#252525">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="5*"/>
+            <ColumnDefinition Width="6*"/>
+        </Grid.ColumnDefinitions>
+        <Grid x:Name="TagGrid" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="38"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="116"/>
+                <RowDefinition Height="38"/>
+            </Grid.RowDefinitions>
+            <Grid x:Name="TagSearchGrid" Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="TagSearch" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="30" VerticalContentAlignment="Center" Margin="4" PreviewKeyDown="TagSearch_PreviewKeyDown" TabIndex="-1"/>
+                <ComboBox x:Name="CategoryFilter" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="30" VerticalContentAlignment="Center" Margin="4" Grid.Column="1" TabIndex="-1" SelectionChanged="CategoryFilter_SelectionChanged"/>
+                <Button x:Name="SearchButton" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4" Width="60" Height="30" Content="Search" TabIndex="-1" Click="SearchButton_Click"/>
+            </Grid>
+            <ListBox x:Name="TagList" Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="4" SelectionChanged="TagList_SelectionChanged" BorderThickness="1" BorderBrush="#858585" TabIndex="-1">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" Foreground="{Binding Color}" HorizontalAlignment="Stretch" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Grid x:Name="TagEditingArea" Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+                <Grid x:Name="ParentAddArea" Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="6*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Parent Tag: " VerticalAlignment="Center" HorizontalAlignment="Center" Height="30" Margin="4" TabIndex="-1" Grid.Column="0"/>
+
+                    <Button x:Name="AddParent" VerticalAlignment="Center" HorizontalAlignment="Center" Width="80" Height="30" Margin="4" Grid.Column="2" Content="Add Parent" TabIndex="-1" Click="AddParent_Click"/>
+                </Grid>
+                <Grid x:Name="MainTagEditArea" Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="8*"/>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label x:Name="TagIDLabel" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" Margin="4" Height="30" Content="#" TabIndex="-1" Grid.Column="0"/>
+                    <!--<TextBox x:Name="MainTagText" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="30" VerticalContentAlignment="Center" Margin="4" TabIndex="1" Grid.Column="1"/>-->
+                    <Label x:Name="TagCountLabel" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalAlignment="Center" Height="30" Margin="4" Content="0" TabIndex="-1" Grid.Column="2"/>
+                    <ComboBox x:Name="TagEditCategory" VerticalAlignment="Center" HorizontalAlignment="Stretch" VerticalContentAlignment="Center" Height="30" Grid.Column="3" TabIndex="-1" Margin="4"/>
+                    <Button x:Name="EditButton" VerticalAlignment="Center" HorizontalAlignment="Center" Width="50" Height="30" Margin="4" Content="Edit" Grid.Column="4" TabIndex="-1" Click="Edit_Click"/>
+                    <Button x:Name="RemoveButton" VerticalAlignment="Center" HorizontalAlignment="Center" Width="70" Height="30" Margin="4" Content="Remove" Grid.Column="5" TabIndex="-1" Click="Remove_Click"/>
+                </Grid>
+                <Grid x:Name="SiblingAddArea" Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="6*"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Preferred Sibling: " VerticalAlignment="Center" Height="30" HorizontalAlignment="Center" Margin="4" TabIndex="-1" Grid.Column="0"/>
+
+                    <Button x:Name="AddSibling" VerticalAlignment="Center" HorizontalAlignment="Center" Width="80" Height="30" Margin="4" Grid.Column="2" Content="Add Sibling" TabIndex="-1" Click="AddSibling_Click"/>
+                </Grid>
+            </Grid>
+            <Grid x:Name="BottomNavGrid" Grid.Row="3" Visibility="Visible">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="FirstPage" Height="26" Width="60" Grid.Column="0" Content="First" TabIndex="-1" Click="FirstPage_Clicked"/>
+                <Button x:Name="PrevPage" Height="26" Width="60" Grid.Column="1" Content="Previous" TabIndex="-1" Click="PrevPage_Clicked"/>
+                <TextBox x:Name="PageNumber" Height="26" Width="30" Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Text="0" TabIndex="-1" PreviewKeyDown="PageNumber_PreviewKeyDown"/>
+                <Label x:Name="PageCount" Height="26" Width="80" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Content=" / (0)" TabIndex="-1"/>
+                <Button x:Name="NextPage" Height="26" Width="60" Grid.Column="4" Content="Next" TabIndex="-1" Click="NextPage_Clicked"/>
+                <Button x:Name="LastPage" Height="26" Width="60" Grid.Column="5" Content="Last" TabIndex="-1" Click="LastPage_Clicked"/>
+            </Grid>
+        </Grid>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1*"/>
+            </Grid.RowDefinitions>
+            <ScrollViewer x:Name="RelationshipScroller" VerticalScrollBarVisibility="Auto" Grid.Row="1">
+                <TabControl x:Name="RelationshipTabControl" TabIndex="-1">
+                    <TabItem x:Name="ParentTabItem" Header="Parent Tags" TabIndex="-1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="1*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="30"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Child" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="0" TextDecorations="Underline" FontWeight="Bold"/>
+                                <TextBlock Text="Parent" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="2" TextDecorations="Underline" FontWeight="Bold"/>
+                            </Grid>
+                            <StackPanel x:Name="ParentTagList" Grid.Row="1"/>
+                        </Grid>
+                    </TabItem>
+                    <TabItem x:Name="SiblingTabItem" Header="Sibling Tags" TabIndex="-1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="1*"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="30"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Alias" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="0" TextDecorations="Underline" FontWeight="Bold"/>
+                                <TextBlock Text="Preferred Sibling" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="2" TextDecorations="Underline" FontWeight="Bold"/>
+                            </Grid>
+                            <StackPanel Grid.Row="1" x:Name="SiblingTagList"/>
+                        </Grid>
+                    </TabItem>
+                    <TabItem x:Name="SourcesTabItem" Header="Sources" TabIndex="-1">                        
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="30"/>
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="ID" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="0" TextDecorations="Underline" FontWeight="Bold"/>
+                                <TextBlock Text="Source" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="1" TextDecorations="Underline" FontWeight="Bold"/>
+                                <TextBlock Text="Primary" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="2" TextDecorations="Underline" FontWeight="Bold"/>
+                            </Grid>
+                            <StackPanel Grid.Row="1" x:Name="SourcesList"/>
+                            <Grid Grid.Row="2" Margin="0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                <Label x:Name="IDLabel" Grid.Column="0" Content="*" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBox x:Name="SourceURL" Grid.Column="1" PreviewKeyUp="SourceAdd_PreviewKeyUp"/>
+                                <CheckBox x:Name="SourcePrimary" Grid.Column="2" HorizontalAlignment="Center"/>
+                                <Button x:Name="AddSource" Content="Add" Grid.Column="3" Click="AddSource_Click"/>
+                            </Grid>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,155 @@
+﻿<UserControl x:Class="Paiz.MediaTagPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Paiz"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800" UseLayoutRounding="True" MouseDown="UserControl_MouseDown">    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="4*"/>
+        </Grid.ColumnDefinitions>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"/>
+                <RowDefinition Height="1*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="40"/>
+            </Grid.RowDefinitions>
+            <Grid x:Name="RatingGrid" Grid.Row="0" Width="380" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="Star1" Grid.Column="0" BorderBrush="Transparent" Background="Transparent" Click="Star1_Click">
+                    <Polygon x:Name="StarPoly1" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star2" Grid.Column="1" BorderBrush="Transparent" Background="Transparent" Click="Star2_Click">
+                    <Polygon x:Name="StarPoly2" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star3" Grid.Column="2" BorderBrush="Transparent" Background="Transparent" Click="Star3_Click">
+                    <Polygon x:Name="StarPoly3" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star4" Grid.Column="3" BorderBrush="Transparent" Background="Transparent" Click="Star4_Click">
+                    <Polygon x:Name="StarPoly4" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star5" Grid.Column="4" BorderBrush="Transparent" Background="Transparent" Click="Star5_Click">
+                    <Polygon x:Name="StarPoly5" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star6" Grid.Column="5" BorderBrush="Transparent" Background="Transparent" Click="Star6_Click">
+                    <Polygon x:Name="StarPoly6" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star7" Grid.Column="6" BorderBrush="Transparent" Background="Transparent" Click="Star7_Click">
+                    <Polygon x:Name="StarPoly7" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star8" Grid.Column="7" BorderBrush="Transparent" Background="Transparent" Click="Star8_Click">
+                    <Polygon x:Name="StarPoly8" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star9" Grid.Column="8" BorderBrush="Transparent" Background="Transparent" Click="Star9_Click">
+                    <Polygon x:Name="StarPoly9" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+                <Button x:Name="Star10" Grid.Column="9" BorderBrush="Transparent" Background="Transparent" Click="Star10_Click">
+                    <Polygon x:Name="StarPoly10" Points="10,0 13,7 20,7 14,12 16,20 10,15 4,20 6,12 0,7 7,7" StrokeThickness="2" Stroke="White" Fill="Gray"/>
+                </Button>
+            </Grid>
+            <ScrollViewer x:Name="Scroller" Grid.Row="1">
+                <StackPanel x:Name="TagsPanel">
+                    <Grid x:Name="SearchBarGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="80"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="GetTagsButton" Content="&#x1f3f7;" Grid.Column="0" Margin="2" Click="GetTagsButton_Click" />
+                        <ComboBox x:Name="Categories" Grid.Column="2" Margin="2"/>
+                        <Button x:Name="TagAdd" Content="AddTag" Grid.Column="3" Margin="2" Click="AddTag_Click"/>
+                    </Grid>
+                    <TextBlock x:Name="TagDisplay" Margin="2"/>
+                </StackPanel>
+            </ScrollViewer>
+            <Border Grid.Row="2" BorderThickness="1" BorderBrush="#656565">
+                <TextBlock x:Name="ImageDetails" VerticalAlignment="Top" TextWrapping="Wrap">
+                    <TextBlock.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem x:Name="ContextGetRule34" Header="Get Source Info" Click="ContextGetRule34_Click"/>
+                            <Separator/>
+                            <MenuItem x:Name="ContextEditSource" Header="Edit Source" Click="ContextEditSource_Click"/>
+                            <Separator/>
+                            <MenuItem x:Name="ContextParseTitle" Header="Parse Title" Click="ContextParseTitle_Click"/>
+                        </ContextMenu>
+                    </TextBlock.ContextMenu>
+                </TextBlock>
+            </Border>
+            <TextBox x:Name="PrimarySourceAddTextBox" Grid.Row="2" VerticalAlignment="Bottom" Margin="2" Visibility="Collapsed" PreviewKeyUp="PrimarySourceAddTextBox_PreviewKeyUp"/>
+            <Grid Grid.Row="3" VerticalAlignment="Bottom">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="PreviousVideoButton" Grid.Column="0" Height="36" Width="90" Click="Button_Click" Foreground="White">
+                    <Polygon x:Name="Prev1" Points="5,0 9,0 4,10 9,20 5,20 0,10" Fill="White"/>
+                </Button>
+                <Button x:Name="EditTagsButton" Height="36" Width="80" Grid.Column="1" Content="Edit Tags" Click="EditTagsButton_Click"/>
+                <Button x:Name="RandomButton" Width="80" Grid.Column="2" Content="Random" Click="RandomButton_Click"/>
+                <Button x:Name="NextVideoButton" Grid.Column="3" Height="36" Width="90" Click="NextVideoButton_Click">
+                    <Polygon x:Name="Next1" Points="0,0 4,0 9,10 4,20 0,20 5,10" Fill="White"/>
+                </Button>
+            </Grid>
+        </Grid>
+        <Grid Grid.Column="1">
+            <local:ZoomBorder ClipToBounds="True" x:Name="MediaBorder" BorderBrush="Black" BorderThickness="1" Background="Black" HorizontalAlignment="Stretch" Visibility="Visible" VerticalAlignment="Stretch" UseLayoutRounding="True" SnapsToDevicePixels="True">
+                <local:ZoomBorder.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem x:Name="ContextGetPath" Header="Copy Path" Click="ContextGetPath_Click"/>
+                        <MenuItem x:Name="ContextCopyTags" Header="Copy Tags From Previous Image" Click="ContextGetIndex_Click"/>
+                        <Separator/>
+                        <MenuItem x:Name="ContextGetMD5" Header="Copy MD5" Click="ContextGetMD5_Click"/>                        
+                        <MenuItem x:Name="ContextRule34MD5" Header="Search MD5 on Rule34.xxx" Click="ContextRule34MD5_Click"/>
+                        <MenuItem x:Name="ContextDanbooruMD5" Header="Search MD5 on Danbooru" Click="ContextDanbooruMD5_Click"/>
+                        <MenuItem x:Name="Contexte621MD5" Header="Search MD5 on e621" Click="Contexte621MD5_Click"/>
+                        <MenuItem x:Name="ContextGelbooruMD5" Header="Search MD5 on Gelbooru" Click="ContextGelbooruMD5_Click"/>
+                        <MenuItem x:Name="ContextRealbooruMD5" Header="Search MD5 on Realbooru" Click="ContextRealbooruMD5_Click"/>
+                        <MenuItem x:Name="ContextSauceNao" Header="Search SauceNao" Click="ContextSauceNao_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Get Tags" Click="ContextGetTags"/>
+                        <Separator/>
+                        <MenuItem Header="Re-Import Thumbnail" Click="MenuItem_Click"/>
+                    </ContextMenu>
+                </local:ZoomBorder.ContextMenu>
+                <Image x:Name="ImageDisplay" StretchDirection="Both" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True" Visibility="Visible"/>                
+            </local:ZoomBorder>
+            <local:FFMEDisplay x:Name="TagPagePlayer" Visibility="Hidden">
+                <local:FFMEDisplay.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Get Path" Click="ContextGetPath_Click"/>
+                        <MenuItem Header="Copy Tags From Previous Image" Click="ContextGetIndex_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Copy MD5" Click="ContextGetMD5_Click"/>
+                        <MenuItem Header="Search MD5 on Rule34.xxx" Click="ContextRule34MD5_Click"/>
+                        <MenuItem Header="Search MD5 on Danbooru" Click="ContextDanbooruMD5_Click"/>
+                        <MenuItem Header="Search MD5 on e621" Click="Contexte621MD5_Click"/>
+                        <MenuItem Header="Search MD5 on Gelbooru" Click="ContextGelbooruMD5_Click"/>
+                        <MenuItem Header="Search MD5 on Realbooru" Click="ContextRealbooruMD5_Click"/>
+                        <Separator/>
+                        <MenuItem Header="Get Tags" Click="ContextGetTags"/>
+                        <Separator/>
+                        <MenuItem Header="Re-Import Thumbnail" Click="MenuItem_Click"/>
+                    </ContextMenu>
+                </local:FFMEDisplay.ContextMenu>
+            </local:FFMEDisplay>
+        </Grid>
+    </Grid>
+</UserControl>
