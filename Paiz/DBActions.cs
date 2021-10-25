@@ -14,6 +14,7 @@ namespace Paiz
     {
         //case-sesitive compare      COLLATE Latin1_General_CS_AS
         private readonly string BackupLocation = "C:\\Users\\Chris\\AppData\\Roaming\\Paiz\\Backup";
+        private readonly string DatabaseLocation = "C:\\Users\\Chris\\AppData\\Roaming\\Paiz\\Database\\nevada.db";
         private readonly string SQLiteConnectionString = @"URI=file:C:\Users\Chris\AppData\Roaming\Paiz\Database\nevada.db";
 
         #region SQLite
@@ -30,7 +31,7 @@ namespace Paiz
         {
             using SQLiteCommand cmd = new(SQLiteConn);
 
-            cmd.CommandText = @"CREATE TABLE image_data(id INTEGER PRIMARY KEY, sha_id TEXT, path TEXT, name TEXT, ext TEXT, date_added NUMERIC, date_modified NUMERIC, height INTEGER, width INTEGER, rating INTEGER, tag_list TEXT, sources TEXT, IQDB INTEGER, phash TEXT, correlated INTEGER, video INTEGER, sound INTEGER, duration INTEGER, frame_rate REAL, md5 TEXT)";
+            cmd.CommandText = @"CREATE TABLE image_data(id INTEGER PRIMARY KEY, sha_id TEXT, path TEXT, name TEXT, ext TEXT, date_added NUMERIC, date_modified NUMERIC, height INTEGER, width INTEGER, rating INTEGER, tag_list TEXT, sources TEXT, IQDB INTEGER, phash BLOB, correlated INTEGER, video INTEGER, sound INTEGER, duration INTEGER, frame_rate REAL, md5 TEXT, booru_tagged INTEGER)";
             cmd.ExecuteNonQuery();
         }
 
@@ -86,7 +87,15 @@ namespace Paiz
         {
             using SQLiteCommand cmd = new(SQLiteConn);
 
-            cmd.CommandText = @"CREATE TABLE booru_tag_map(booru_tag TEXT PRIMARY KEY, tagid INTEGER)";
+            cmd.CommandText = @"CREATE TABLE booru_tag_map(id INTEGER PRIMARY KEY, booru_tag TEXT, booru_source INTEGER, tagid INTEGER)";
+            cmd.ExecuteNonQuery();
+        }
+
+        private void CreateBooruPostProcessing()
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+
+            cmd.CommandText = @"CREATE TABLE booru_post_processing(id INTEGER PRIMARY KEY, hash TEXT, booru_tag TEXT, booru_source INTEGER, processed INTEGER)";
             cmd.ExecuteNonQuery();
         }
 
@@ -100,6 +109,7 @@ namespace Paiz
             CreateDeletedImagesTable();
             CreateSettingsTable();
             CreateBooruTagMapTable();
+            CreateBooruPostProcessing();
         }
 
         public void SQLiteClose()
@@ -275,7 +285,7 @@ namespace Paiz
         public void InsertIntoImageData(string hash, string path, string name, string ext, DateTime date_added, DateTime date_modified, int height, int width, string md5)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "INSERT INTO image_data (sha_id, path, name, ext, date_added, date_modified, height, width, rating, IQDB, md5) VALUES (@sha_id, @path, @name, @ext, @date_added, @date_modified, @height, @width, @rating, @IQDB, @md5)";
+            cmd.CommandText = "INSERT INTO image_data (sha_id, path, name, ext, date_added, date_modified, height, width, rating, IQDB, md5, booru_tagged) VALUES (@sha_id, @path, @name, @ext, @date_added, @date_modified, @height, @width, @rating, @IQDB, @md5, @booru_tagged)";
 
             cmd.Parameters.AddWithValue("@sha_id", hash);
             cmd.Parameters.AddWithValue("@path", path);
@@ -288,6 +298,7 @@ namespace Paiz
             cmd.Parameters.AddWithValue("@rating", 0);
             cmd.Parameters.AddWithValue("@IQDB", false);
             cmd.Parameters.AddWithValue("@md5", md5);
+            cmd.Parameters.AddWithValue("@booru_tagged", false);
 
             cmd.Prepare();
             try
@@ -391,6 +402,31 @@ namespace Paiz
                 {
                     AddNewTag(tag, path);
                     taglist = CheckForParentTags(tag, path);
+                }
+            }
+            return taglist;
+        }
+
+        public string AddTagByID(string path, int tagid)
+        {
+            string tag = GetTagName(tagid);
+            string taglist = GetTagList(path);
+
+            if (!CheckDuplicateTags(tagid, path))
+            {
+                string primarysibling = GetPreferredTag(tag);
+                if (!CheckDuplicateTags(GetTagid(primarysibling), path))
+                {
+                    if (primarysibling != "")
+                    {
+                        AddNewTag(primarysibling, path);
+                        taglist = CheckForParentTags(primarysibling, path);
+                    }
+                    else
+                    {
+                        AddNewTag(tag, path);
+                        taglist = CheckForParentTags(tag, path);
+                    }
                 }
             }
             return taglist;
@@ -686,30 +722,36 @@ namespace Paiz
 
         public void AddPrimarySource(string path, string source)
         {
-            List<string> sources = GetSources(path);
+            if (!CheckIfSourceExists(path, source))
+            {
+                List<string> sources = GetSources(path);
 
-            using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "update image_data set sources = @sources where path = @path";
+                using SQLiteCommand cmd = new(SQLiteConn);
+                cmd.CommandText = "update image_data set sources = @sources where path = @path";
 
-            cmd.Parameters.AddWithValue("@sources", source + " " + string.Join(' ', sources));
-            cmd.Parameters.AddWithValue("@path", path);
+                cmd.Parameters.AddWithValue("@sources", source + " " + string.Join(' ', sources));
+                cmd.Parameters.AddWithValue("@path", path);
 
-            cmd.Prepare();
-            cmd.ExecuteNonQuery();
+                cmd.Prepare();
+                cmd.ExecuteNonQuery();
+            }
         }
 
         public void AddNonPrimarySource(string path, string source)
         {
-            List<string> sources = GetSources(path);
+            if(!CheckIfSourceExists(path, source))
+            {
+                List<string> sources = GetSources(path);
 
-            using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "update image_data set sources = @sources where path = @path";
+                using SQLiteCommand cmd = new(SQLiteConn);
+                cmd.CommandText = "update image_data set sources = @sources where path = @path";
 
-            cmd.Parameters.AddWithValue("@sources", string.Join(' ', sources) + " " + source);
-            cmd.Parameters.AddWithValue("@path", path);
+                cmd.Parameters.AddWithValue("@sources", string.Join(' ', sources) + " " + source);
+                cmd.Parameters.AddWithValue("@path", path);
 
-            cmd.Prepare();
-            cmd.ExecuteNonQuery();
+                cmd.Prepare();
+                cmd.ExecuteNonQuery();
+            }
         }
 
         public void UpdateSpecificSource(string path, string oldsource, string newsource)
@@ -754,6 +796,19 @@ namespace Paiz
             cmd.CommandText = "update image_data set sources = @sources where path = @path";
 
             cmd.Parameters.AddWithValue("@sources", string.Join(' ', sources));
+            cmd.Parameters.AddWithValue("@path", path);
+
+            cmd.Prepare();
+            cmd.ExecuteNonQuery();
+        }
+
+        public void UpdateBooruTagged(string path, bool tagged)
+        {
+
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "update image_data set booru_tagged = @booru_tagged where path = @path";
+            
+            cmd.Parameters.AddWithValue("@booru_tagged", tagged);
             cmd.Parameters.AddWithValue("@path", path);
 
             cmd.Prepare();
@@ -1114,7 +1169,7 @@ namespace Paiz
             cmd.Parameters.AddWithValue("@tagid", "%;" + tagid + ";%");
 
             cmd.Prepare();
-            return (int)cmd.ExecuteScalar();
+            return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
         public List<string> SearchByExactTag(string Tag)
@@ -1516,6 +1571,27 @@ namespace Paiz
             return false;
         }
 
+        public List<ImageItem> GetBooruUntaggedItems()
+        {
+            List<ImageItem> Output = new();
+
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "SELECT * FROM image_data where booru_tagged=@booru_tagged limit 300";
+
+            cmd.Parameters.AddWithValue("@booru_tagged", false);
+            cmd.Prepare();
+
+            using SQLiteDataReader rdr = cmd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                Output.Add(new ImageItem() { path = rdr["path"].ToString(), hash = rdr["sha_id"].ToString(), sources = rdr["sources"].ToString() == "" ? new List<string>() : rdr["sources"].ToString().Split(" ", StringSplitOptions.RemoveEmptyEntries).ToList() });
+            }
+
+            Logger.Write("Getting 300 file that haven't been booru Tagged.");
+            return Output;
+        }
+
         #endregion
 
         #region tag_data Add/Update/Delete Functions
@@ -1617,7 +1693,7 @@ namespace Paiz
         public void IncrementTagCount(int tagid)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "UPDATE tag_data SET tag_count=tag_count + 1 WHERE tagid=tagid";
+            cmd.CommandText = "UPDATE tag_data SET tag_count=tag_count + 1 WHERE tagid=@tagid";
 
             cmd.Parameters.AddWithValue("@tagid", tagid);
 
@@ -1776,7 +1852,7 @@ namespace Paiz
             int ExactID = -1;
 
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "SELECT tagid FROM tag_data WHERE tag_name=@tag_name AND category_id != " + TitleID;
+            cmd.CommandText = "SELECT tagid FROM tag_data WHERE tag_name=@tag_name AND category_id != " + TitleID + " COLLATE NOCASE";
 
             cmd.Parameters.AddWithValue("@tag_name", searchtext);
 
@@ -2035,7 +2111,7 @@ namespace Paiz
             int preferredid = GetTagid(preferredtag.Trim());
 
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "INSERT INTO sibling_data (old_id, new_id, retro) VALUES (@aslias, @preferred, @retro)";
+            cmd.CommandText = "INSERT INTO sibling_data (old_id, new_id, retro) VALUES (@alias, @preferred, @retro)";
 
             cmd.Parameters.AddWithValue("@alias", aliasid);
             cmd.Parameters.AddWithValue("@preferred", preferredid);
@@ -2133,7 +2209,7 @@ namespace Paiz
             using SQLiteCommand cmd = new(SQLiteConn);
             cmd.CommandText = "UPDATE sibling_data SET old_id=@newalias WHERE new_id=@preferred AND old_id=@oldalias";
 
-            cmd.Parameters.AddWithValue("@newalaias", SqlDbType.Int).Value = newaliasid;
+            cmd.Parameters.AddWithValue("@newalias", SqlDbType.Int).Value = newaliasid;
             cmd.Parameters.AddWithValue("@preferred", preferredid);
             cmd.Parameters.AddWithValue("@oldalias", SqlDbType.Int).Value = oldaliasid;
 
@@ -2149,7 +2225,7 @@ namespace Paiz
             cmd.CommandText = "UPDATE sibling_data SET retro=@retro WHERE old_id=@alias AND new_id=@preferred";
 
             cmd.Parameters.AddWithValue("@retro", true);
-            cmd.Parameters.AddWithValue("@aslias", aliasid);
+            cmd.Parameters.AddWithValue("@alias", aliasid);
             cmd.Parameters.AddWithValue("@preferred", preferredid);
 
             cmd.Prepare();
@@ -2195,7 +2271,7 @@ namespace Paiz
             using SQLiteCommand cmd = new(SQLiteConn);
             cmd.CommandText = "SELECT new_id FROM sibling_data WHERE old_id=@alias";
 
-            cmd.Parameters.AddWithValue("@palias", aliasid);
+            cmd.Parameters.AddWithValue("@alias", aliasid);
 
             cmd.Prepare();
             using SQLiteDataReader rdr = cmd.ExecuteReader();
@@ -2417,7 +2493,7 @@ namespace Paiz
         public void UpdateChildTag(int oldchildid, int newchildid, int parentid)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "UPDATE parent_data SET child_id=@newchild WHERE parent_id=@preant AND child_id=@oldchild";
+            cmd.CommandText = "UPDATE parent_data SET child_id=@newchild WHERE parent_id=@parent AND child_id=@oldchild";
 
             cmd.Parameters.AddWithValue("@newchild", SqlDbType.Int).Value = newchildid;
             cmd.Parameters.AddWithValue("@parent", parentid);
@@ -2685,7 +2761,7 @@ namespace Paiz
             List<DupesItem> Output = new();
 
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "SELECT * FROM dupes where processed = @precessed or processed is null";
+            cmd.CommandText = "SELECT * FROM dupes where processed = @processed or processed is null order by score asc";
 
             cmd.Parameters.AddWithValue("@processed", false);
             cmd.Prepare();
@@ -2693,7 +2769,7 @@ namespace Paiz
                 
             while (rdr.Read())
             {
-                Output.Add(new DupesItem() { hash1 = rdr["hash_1"].ToString(), hash2 = rdr["hash_2"].ToString() });
+                Output.Add(new DupesItem() { hash1 = rdr["hash_1"].ToString(), hash2 = rdr["hash_2"].ToString(), score = rdr.GetFloat(3) });
             }
 
             return Output;
@@ -2707,7 +2783,7 @@ namespace Paiz
             cmd.Parameters.AddWithValue("@processed", false);
 
             cmd.Prepare();
-            return (int)cmd.ExecuteScalar();
+            return Convert.ToInt32(cmd.ExecuteScalar());
         }
 
         #endregion
@@ -2751,7 +2827,7 @@ namespace Paiz
             List<string> TrueOutput = new();
 
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "SELECT * FROM deleted_images where (deleted = @deleted or deleted is null) and date_added < DATEADD(day, -30, GETDATE());";
+            cmd.CommandText = "SELECT * FROM deleted_images where (deleted = @deleted or deleted is null) and date_added < date('now','-30 days');";
 
             cmd.Parameters.AddWithValue("@deleted", false);
             cmd.Prepare();
@@ -2794,12 +2870,13 @@ namespace Paiz
 
         #region Booru tag map Add/Update/Delete Functions
 
-        public void AddRowToTagMapTable(string boorutag, int tagid)
+        public void AddRowToTagMapTable(string boorutag, int boorusource, int tagid)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "INSERT INTO booru_tag_map (booru_tag, tagid) VALUES (@booru_tag, @tagid);";
+            cmd.CommandText = "INSERT INTO booru_tag_map (booru_tag, booru_source, tagid) VALUES (@booru_tag, @booru_source, @tagid);";
 
             cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
             cmd.Parameters.AddWithValue("@tagid", tagid);
 
             cmd.Prepare();
@@ -2808,13 +2885,14 @@ namespace Paiz
             Logger.Write("Adding tag map between booru tag: " + boorutag + " and Tag: " + GetTagName(tagid));
         }
 
-        public void UpdateTagMapPodoboID(string boorutag, int oldtagid, int newtagid)
+        public void UpdateTagMapPodoboID(string boorutag, int boorusource, int oldtagid, int newtagid)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "UPDATE booru_tag_map set tagid=@newtagid WHERE booru_tag=@booru_tag and tagid=@oldtagid";
+            cmd.CommandText = "UPDATE booru_tag_map set tagid=@newtagid WHERE booru_tag=@booru_tag and tagid=@oldtagid and booru_source=@booru_source";
 
             cmd.Parameters.AddWithValue("@newtagid", newtagid);
             cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
             cmd.Parameters.AddWithValue("@oldtagid", oldtagid);
 
             cmd.Prepare();
@@ -2823,13 +2901,14 @@ namespace Paiz
             Logger.Write("Updating Tag Map Podobo Tag: " + GetTagName(oldtagid) + " to new Podobo Tag: " + GetTagName(newtagid) + " for booru tag: " + boorutag);
         }
 
-        public void UpdateTagMapBooruTag(string oldboorutag, string newboorutag, int tagid)
+        public void UpdateTagMapBooruTag(string oldboorutag, string newboorutag, int boorusource, int tagid)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "UPDATE booru_tag_map set booru_tag=@newbooru WHERE booru_tag=@oldbooru and tagid=@tagid";
+            cmd.CommandText = "UPDATE booru_tag_map set booru_tag=@newbooru WHERE booru_tag=@oldbooru and tagid=@tagid and booru_source=@booru_source";
 
             cmd.Parameters.AddWithValue("@newbooru", newboorutag);
             cmd.Parameters.AddWithValue("@oldbooru", oldboorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
             cmd.Parameters.AddWithValue("@tagid", tagid);
 
             cmd.Prepare();
@@ -2838,12 +2917,13 @@ namespace Paiz
             Logger.Write("Updating Tag Map Booru Tag: " + oldboorutag + " to new Booru Tag: " + newboorutag + " for Podobo tag: " + GetTagName(tagid));
         }
 
-        public void RemoveTagMap(string boorutag, int tagid)
+        public void RemoveTagMap(string boorutag, int boorusource, int tagid)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "DELETE from booru_tag_map WHERE booru_tag=@booru_tag and tagid=@tagid";
+            cmd.CommandText = "DELETE from booru_tag_map WHERE booru_tag=@booru_tag and tagid=@tagid and booru_source=@booru_source";
 
             cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
             cmd.Parameters.AddWithValue("@tagid", tagid);
 
             cmd.Prepare();
@@ -2856,36 +2936,39 @@ namespace Paiz
 
         #region Booru Tag map Select Functions
 
-        public bool CheckIfTagMapExists(string boorutag)
+        public bool CheckIfTagMapExists(string boorutag, int boorusource)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "SELECT COUNT(*) FROM booru_tag_map WHERE booru_tag=@booru_tag";
+            cmd.CommandText = "SELECT COUNT(*) FROM booru_tag_map WHERE booru_tag=@booru_tag and booru_source=@booru_source";
 
             cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
 
             cmd.Prepare();
             return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
         }
 
-        public int GetTagIdfromTagMap(string boorutag)
+        public int GetTagIdfromTagMap(string boorutag, int boorusource)
         {
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "SELECT tagid FROM booru_tag_map WHERE booru_tag=@booru_tag";
+            cmd.CommandText = "SELECT tagid FROM booru_tag_map WHERE booru_tag=@booru_tag and booru_source=@booru_source";
 
             cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
             cmd.Prepare();
 
             using SQLiteDataReader rdr = cmd.ExecuteReader();
             return rdr.Read() ? rdr.GetInt32(0) : -1;
         }
 
-        public string GetTagNamefromTagMap(string boorutag)
+        public string GetTagNamefromTagMap(string boorutag, int boorusource)
         {
             int tagid;
             using SQLiteCommand cmd = new(SQLiteConn);
-            cmd.CommandText = "SELECT tagid FROM booru_tag_map WHERE booru_tag=@booru_tag";
+            cmd.CommandText = "SELECT tagid FROM booru_tag_map WHERE booru_tag=@booru_tag and booru_source=@booru_source";
 
             cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
             cmd.Prepare();
 
             using SQLiteDataReader rdr = cmd.ExecuteReader();
@@ -2895,6 +2978,128 @@ namespace Paiz
         }
 
         #endregion
+
+        #region Booru post processing Add/Update/Delete Functions
+
+        public void AddRowToPostprocessingTable(string hash, string boorutag, int boorusource)
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "INSERT INTO booru_post_processing (hash, booru_tag, booru_source, processed) VALUES (@hash, @booru_tag, @booru_source, @processed)";
+
+            cmd.Parameters.AddWithValue("@hash", hash);
+            cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
+            cmd.Parameters.AddWithValue("@processed", false);
+
+            cmd.Prepare();
+            cmd.ExecuteNonQuery();
+
+            //Logger.Write("Adding tag map between booru tag: " + boorutag + " and Tag: " + GetTagName(tagid));
+        }
+
+        public void UpdatePostprocessingProcessed(string hash)
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "Update booru_post_processing set processed=@processed where hash = @hash";
+
+            cmd.Parameters.AddWithValue("@hash", hash);
+            cmd.Parameters.AddWithValue("@processed", true);
+
+            cmd.Prepare();
+            cmd.ExecuteNonQuery();
+        }
+
+        #endregion
+
+        #region Booru Post processing Select Functions
+
+        public bool CheckIfPostProcessingExists(string hash, string boorutag, int boorusource)
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "SELECT COUNT(*) FROM booru_post_processing WHERE hash=@hash and booru_tag=@booru_tag and booru_source=@booru_source";
+
+            cmd.Parameters.AddWithValue("@hash", hash);
+            cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
+
+            cmd.Prepare();
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
+
+        public bool CheckIfProcessingCompleted(string boorutag, int boorusource)
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "SELECT COUNT(*) FROM booru_post_processing WHERE booru_tag=@booru_tag and booru_source=@booru_source and processed=@processed";
+
+            cmd.Parameters.AddWithValue("@processed", true);
+            cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
+
+            cmd.Prepare();
+            return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+        }
+
+        public string[] GetPostProcessingItem()
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "SELECT * FROM booru_post_processing WHERE processed=@processed limit 1";
+
+            cmd.Parameters.AddWithValue("@processed", false);
+
+            cmd.Prepare();
+            using SQLiteDataReader rdr = cmd.ExecuteReader();
+            if (rdr.Read())
+            {
+                string order = rdr.GetInt32(0) switch
+                {
+                    0 => "https://danbooru.donmai.us/posts?tags=",
+                    1 => "https://e621.net/posts?tags=",
+                    2 => "https://rule34.xxx/index.php?page=post&s=list&tags=",
+                    3 => "https://gelbooru.com/index.php?page=post&s=list&tags=",
+                    4 => "https://realbooru.com/index.php?page=post&s=list&tags=",
+                    _ => "",
+                };
+                return new string [] { rdr["booru_tag"].ToString(), order };
+            }
+            return Array.Empty<string>();
+        }
+
+        public List<string> GetPostProcessingImages(string boorutag, int boorusource)
+        {
+            List<string> output = new();
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "SELECT hash FROM booru_post_processing WHERE booru_tag=@booru_tag and booru_source = @booru_source";
+
+            cmd.Parameters.AddWithValue("@booru_tag", boorutag);
+            cmd.Parameters.AddWithValue("@booru_source", boorusource);
+
+            cmd.Prepare();
+            using SQLiteDataReader rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                output.Add(rdr["hash"].ToString());
+            }
+            return output;
+        }
+
+        #endregion
+
+        public void Backup()
+        {
+            using SQLiteCommand cmd = new(SQLiteConn);
+            cmd.CommandText = "BEGIN IMMEDIATE;";
+            cmd.Prepare();
+            cmd.ExecuteNonQuery();
+
+            string BackupFile = Path.Combine(BackupLocation, "nevada-backup" + "_" + DateTime.Now.Month.ToString() + "-" + DateTime.Now.Day.ToString() + "-" + DateTime.Now.Year.ToString() + ".db");
+            if (!File.Exists(BackupFile))
+            {
+                File.Copy(DatabaseLocation, BackupFile);
+            }
+
+            cmd.CommandText = "ROLLBACK;";
+            cmd.ExecuteNonQuery();
+        }
 
         public List<string> GetEmptySources(string Sourcekey)
         {
@@ -2912,6 +3117,39 @@ namespace Paiz
 
             return Output;
         }
+
+        //public void ExportPhashes()
+        //{
+        //    var sb = new StringBuilder();
+        //    sb.Append("image_data" + Environment.NewLine);
+        //    sb.Append("sha_id || phash" + Environment.NewLine);
+        //    string delimiter = "||";
+        //    var query = "select sha_id, phash from image_data order by sha_id;"; // offset " + offset.ToString() + " rows fetch next " + rowcount.ToString() + " rows only";
+
+        //    using (SqlCommand cmd = new(query, conn))
+        //    {
+
+        //        cmd.CommandType = CommandType.Text;
+        //        using (SqlDataReader rdr = cmd.ExecuteReader())
+        //        {
+        //            while (rdr.Read())
+        //            {
+        //                string phashstring = "";
+        //                byte[] phash = rdr["phash"] as byte[];
+        //                foreach (byte b in phash)
+        //                {
+        //                    phashstring += b.ToString() + ",";
+        //                }
+        //                sb.Append(rdr["sha_id"].ToString() + delimiter +
+        //                    phashstring + delimiter + Environment.NewLine);
+        //            }
+        //        }
+        //    }
+        //    using (StreamWriter writestuff = File.AppendText(BackupLocation + "phashes.txt"))
+        //    {
+        //        writestuff.WriteLine(sb.ToString());
+        //    }
+        //}
     }
 
     public class TagItem
@@ -2941,6 +3179,7 @@ namespace Paiz
         public bool sound;
         public byte[] phash;
         public string md5;
+        public List<string> sources;
     }
 
     //public class ImageThumbnailItem
@@ -3022,6 +3261,7 @@ namespace Paiz
     {
         public string hash1;
         public string hash2;
+        public float score;
     }
 
 }

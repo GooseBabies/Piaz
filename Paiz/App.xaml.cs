@@ -24,6 +24,28 @@ namespace Paiz
                 System.Diagnostics.Debug.WriteLine(ev.Message);
             };
             base.OnStartup(e);
+
+            //Handling uncovered UI exceptions
+            DispatcherUnhandledException += App_DispatcherUnhandledException;
+
+            //Global exception
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+            //Handling Uncaptured Exceptions in Task
+            TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
+        }
+
+        private void TaskScheduler_UnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            Logger.Log();
+        }
+        private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Logger.Log();
+        }
+        private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            Logger.Log();
         }
     }
 }

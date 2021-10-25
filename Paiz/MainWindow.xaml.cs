@@ -17,6 +17,7 @@ using Microsoft.WindowsAPICodePack.Shell;
 using Hardcodet.Wpf.TaskbarNotification;
 using AdonisUI.Controls;
 using System.Windows.Media.Animation;
+using BooruSharp.Search.Post;
 
 namespace Paiz
 {
@@ -56,8 +57,8 @@ namespace Paiz
         CategoryItem Categories = new();
 
         //BackgroundWorker NewFilesWorker;
-        //BackgroundWorker ProcessDupesWorker;
-        readonly BackgroundWorker ExportDatabaseWorker = new();
+        BackgroundWorker BooruAutoTaggerWorker = new();
+        //readonly BackgroundWorker ExportDatabaseWorker = new();
         readonly ThumbnailCreator ThumbMaker = new();
         readonly TagSuggestionSearchBar SearchBar;
         TaskbarIcon tbi;
@@ -73,8 +74,11 @@ namespace Paiz
             };
             tbi.TrayMouseDoubleClick += new RoutedEventHandler(tbi_TrayMouseDoubleClick);
 
+            BooruAutoTaggerWorker.DoWork += BooruAutoTaggerWorker_DoWork;
+            BooruAutoTaggerWorker.ProgressChanged += BooruAutoTaggerWorker_ProgressChanged;
+            BooruAutoTaggerWorker.WorkerReportsProgress = true;
+
             //Connect to the Database
-            //DB.Connect();
             DB.SQLiteConnect();
 
             SearchBar = new TagSuggestionSearchBar(DB)
@@ -102,7 +106,7 @@ namespace Paiz
             //
 
             //Get all important image information needed to set up main grid for each image
-            FilteredImagePaths = ImagePaths = DB.GetAllImageItems((int)OrderBY.ID, true);
+            FilteredImagePaths = ImagePaths = DB.GetAllImageItems((int)OrderBY.ID, false);
             SearchCount.Content = FilteredImagePaths.Count.ToString();
 
             //ImportData();
@@ -113,7 +117,7 @@ namespace Paiz
             //Populate main tab controls with appropriate thumnail and filenames based on current page
             PopulateThumbnailGrid(FilteredImagePaths);
 
-            DupeComparison.Header = "Dupes [" + /*DB.GetDupesCount() +*/ "0]";
+            DupeComparison.Header = "Dupes [" + DB.GetDupesCount() + "]";
 
             //Maximize the window
             WindowState = WindowState.Maximized;
@@ -254,6 +258,7 @@ namespace Paiz
             if (perform)
             {
                 List<FileInfo> NewMedia = new();
+                List<Tuple<FileInfo, string[]>> newHashes = new();
                 foreach (string folder in FileLocations)
                 {
                     if (Directory.Exists(folder))
@@ -263,209 +268,208 @@ namespace Paiz
                     }
                 }
 
-                //FilesList = FilesList.OrderByDescending(f => f.LastWriteTime).ToList();
-
                 foreach (FileInfo file in NewMedia)
                 {
-                    //Check DB if file is already in database
-                    if (DB.GetHash(file.FullName) == "") //not in database
+                    if (DB.GetHash(file.FullName) == "") //path not in database
                     {
-                        Logger.Write(file.Name + " Not found in Database");
-                        string[] hasharray = GenerateHash(file.FullName);
-                        //string hash = GenerateHash(file.FullName);
-                        Logger.Write(file.Name + ": Hash is " + hasharray[0]);
-
-                        if (DB.CheckDuplicateHash(hasharray[0])) //Check if Hash is already in Database, this means this is a new File that is the exact same Image or it is a renames file
-                        {
-                            Logger.Write("Hash Duplicate of " + file.Name + " already in database");
-                            if (!File.Exists(DB.GetPath(hasharray[0]))) //If the old filename of the hash doesn't exist anymore it most likely had its Filename changed
-                            {
-                                DB.UpdatePathComponents(hasharray[0], file.FullName, file.Name, file.Extension); //Update the Filename information in the Database
-                                Logger.Write("Hash file already in Database doesn't exist anymore, this file will replace: " + file.Name);
-                            }
-                            else  //If the old filename does still exist this new file is an exact duplicate of another file already in the databse so we can delete it
-                            {
-                                File.Delete(file.FullName);
-                                Logger.Write("Deleting new file: " + file.Name);
-                            }
-                        }
-                        else if (DB.CheckIfHashHasBeenDeletedBefore(hasharray[0])) //if we've deleted a file with the same hash before ignore the new file
-                        {
-                            Logger.Write(file.Name + " has been deleted from Database before; Ignored");
-                            continue;
-                        }
-                        else
-                        {
-                            DB.InsertIntoImageData(hasharray[0], file.FullName, file.Name, file.Extension, DateTime.Now, file.LastWriteTime, 0, 0, hasharray[1]);
-                            Logger.Write("Importing: " + file.Name + " into database");
-
-                            if(file.Length > 8192000)
-                            {
-                                DB.UpdateIqdb(file.FullName);
-                            }
-
-                            if (file.Name.Contains("rule34.xxx"))
-                            {
-                                string[] filecontents = file.Name.Split(new char[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
-                                string sourceurl = "";
-                                sourceurl = "https://rule34.xxx/index.php?page=post&s=view&id=";
-                                sourceurl += Path.GetFileNameWithoutExtension(filecontents[^1]);
-                                DB.AddPrimarySource(file.FullName, sourceurl);
-                            }
-                            else if (file.Name.Contains("e621"))
-                            {
-                                string[] filecontents = file.Name.Split(new char[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
-                                string sourceurl = "";
-                                sourceurl = "https://e621.net/posts/";
-                                sourceurl += Path.GetFileNameWithoutExtension(filecontents[^1]);
-                                DB.AddPrimarySource(file.FullName, sourceurl);
-                            }
-                            else if (file.Name.Contains("Danbooru"))
-                            {
-                                string[] filecontents = file.Name.Split(new char[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
-                                string sourceurl = "";
-                                sourceurl = "https://danbooru.donmai.us/posts/";
-                                sourceurl += Path.GetFileNameWithoutExtension(filecontents[^1]);
-                                DB.AddPrimarySource(file.FullName, sourceurl);
-                            }
-
-                            if (VideoTypes.Contains(file.Extension))
-                            {
-                                using ShellObject shell = ShellObject.FromParsingName(file.FullName);
-                                double l = 0;
-                                var dur = shell.Properties.System.Media.Duration.ValueAsObject;
-                                if (dur != null)
-                                {
-                                    l = TimeSpan.FromTicks((long)(ulong)dur).TotalSeconds;
-                                }
-
-                                int Duration = (int)Math.Floor(l);
-
-                                float rateob = 0.0F;
-                                var rate = shell.Properties.System.Video.FrameRate.ValueAsObject;
-                                if (rate != null)
-                                {
-                                    var ratefl = (float)(uint)rate;
-                                    rateob = ratefl / (float)1000;
-                                }
-
-                                var frameheight = shell.Properties.System.Video.FrameHeight.ValueAsObject;
-                                int frameh = 0;
-                                if (frameheight != null)
-                                {
-                                    frameh = (int)(uint)frameheight;
-                                }
-
-                                var framewidth = shell.Properties.System.Video.FrameWidth.ValueAsObject;
-                                int framew = 0;
-                                if (framewidth != null)
-                                {
-                                    framew = (int)(uint)framewidth;
-                                }
-
-                                var audio = shell.Properties.System.Audio.ChannelCount.ValueAsObject;
-                                int audioob = 0;
-                                if (audio != null)
-                                {
-                                    audioob = (int)(uint)audio;
-                                }
-
-                                DB.Updatephash(file.FullName, new byte[40]);
-                                DB.UpdateCorrelated(file.FullName);
-                                DB.UpdateHeightAndWidth(file.FullName, frameh, framew);
-                                DB.UpdateVideoItems(file.FullName, true, audioob > 0, Duration, rateob);
-
-                                ImportThumbnail(file.FullName, shell);
-                            }
-                            else if(file.Extension == ".gif")
-                            {
-                                //string filePath = @"Y:\Media\GIF\yah-buoy_Zelda_fbnjwl.gif";
-                                int animationDuration = 0;
-                                bool animated = false;
-                                int height = 0;
-                                int width = 0;
-                                float rate = 0.0F;
-
-                                using (var image = System.Drawing.Image.FromFile(file.FullName))
-                                {
-                                    height = image.Height;
-                                    width = image.Width;
-
-                                    if (ImageAnimator.CanAnimate(image))
-                                    {
-                                        //Get frames  
-                                        var dimension = new System.Drawing.Imaging.FrameDimension(image.FrameDimensionsList[0]);
-                                        int frameCount = image.GetFrameCount(dimension);
-                                        var minimumFrameDelay = (1000.0 / 60);
-                                        var duration = 0;                                        
-
-                                        for (int i = 0; i < frameCount; i++)
-                                        {
-
-                                            var delayPropertyBytes = image.GetPropertyItem(20736).Value;
-                                            var frameDelay = BitConverter.ToInt32(delayPropertyBytes, i * 4) * 10;
-                                            // Minimum delay is 16 ms. It's 1/60 sec i.e. 60 fps
-                                            duration += (frameDelay < minimumFrameDelay ? (int)minimumFrameDelay : frameDelay);
-                                            rate = (frameDelay == 0 ? 0 : 1 / frameDelay);
-                                        }
-
-                                        animationDuration = (duration / 1000);
-                                        rate = (float)frameCount / ((float)duration / (float)1000);
-                                        animated = true;
-                                    }
-                                }
-
-                                DB.UpdateVideoItems(file.FullName, animated, false, animationDuration, rate);
-
-                                DB.UpdateHeightAndWidth(file.FullName, height, width);
-                                Logger.Write("Importing HxW: " + height.ToString() + "x" + width.ToString() + " for image: " + file.Name + " into database");
-
-                                using(ShellObject shell = ShellObject.FromParsingName(file.FullName))
-                                {
-                                    ImportThumbnail(file.FullName, shell);
-                                }
-                                
-                                Logger.Write("Generating Thumbnail for " + file.Name);
-
-                                GeneratePHash(file.FullName);
-                                Logger.Write("Generating PHash for " + file.Name);
-                            }
-                            else
-                            {
-                                try
-                                {
-                                    using var imageStream = File.OpenRead(file.FullName);
-                                    var decoder = BitmapDecoder.Create(imageStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.Default);
-                                    DB.UpdateHeightAndWidth(file.FullName, decoder.Frames[0].PixelHeight, decoder.Frames[0].PixelWidth);
-                                    Logger.Write("Importing HxW: " + decoder.Frames[0].PixelHeight.ToString() + "x" + decoder.Frames[0].PixelWidth.ToString() + " for image: " + file.Name + " into database");
-                                }
-                                catch { }
-
-                                DB.UpdateVideoItems(file.FullName, false, false, 0, 0);
-
-                                using (ShellObject shell = ShellObject.FromParsingName(file.FullName))
-                                {
-                                    ImportThumbnail(file.FullName, shell);
-                                }
-
-                                GeneratePHash(file.FullName);
-                                Logger.Write("Generating PHash for " + file.Name);
-                            }
-                        }
+                        newHashes.Add(new Tuple<FileInfo, string[]>(file, GenerateHash(file.FullName)));
                     }
                 }
 
-                //TrayIcon.ShowBalloonTip(10000, "Import", "Complete", System.Windows.Forms.ToolTipIcon.Info);
+                newHashes = newHashes.OrderBy(c => c.Item2[0]).ToList();
 
-                //DB.UpdateFileCheckDate();
-                tbi.ShowBalloonTip("Import", "Import Completed", BalloonIcon.None);
                 NewMedia.Clear();
+
+                foreach(Tuple<FileInfo, string[]> HashItem in newHashes)
+                {
+
+                    if (DB.CheckDuplicateHash(HashItem.Item2[0])) //Check if Hash is already in Database, this means this is a new File that is the exact same Image or it is a renames file
+                    {
+                        Logger.Write("Hash Duplicate of " + HashItem.Item1.Name + " already in database");
+                        if (!File.Exists(DB.GetPath(HashItem.Item2[0]))) //If the old filename of the hash doesn't exist anymore it most likely had its Filename changed
+                        {
+                            DB.UpdatePathComponents(HashItem.Item2[0], HashItem.Item1.FullName, HashItem.Item1.Name, HashItem.Item1.Extension); //Update the Filename information in the Database
+                            Logger.Write("Hash file already in Database doesn't exist anymore, this file will replace: " + HashItem.Item1.Name);
+                        }
+                        else  //If the old filename does still exist this new file is an exact duplicate of another file already in the databse so we can delete it
+                        {
+                            File.Delete(HashItem.Item1.FullName);
+                            Logger.Write("Deleting new file: " + HashItem.Item1.Name);
+                        }
+                    }
+                    else if (DB.CheckIfHashHasBeenDeletedBefore(HashItem.Item2[0])) //if we've deleted a file with the same hash before ignore the new file
+                    {
+                        Logger.Write(HashItem.Item1.Name + " has been deleted from Database before; Ignored");
+                        continue;
+                    }
+                    else
+                    {
+                        DB.InsertIntoImageData(HashItem.Item2[0], HashItem.Item1.FullName, HashItem.Item1.Name, HashItem.Item1.Extension, DateTime.Now, HashItem.Item1.LastWriteTime, 0, 0, HashItem.Item2[1]);
+                        Logger.Write("Importing: " + HashItem.Item1.Name + " into database");
+
+                        if(HashItem.Item1.Length > 8192000)
+                        {
+                            DB.UpdateIqdb(HashItem.Item1.FullName);
+                        }
+
+                        if (HashItem.Item1.Name.Contains("rule34.xxx"))
+                        {
+                            string[] filecontents = HashItem.Item1.Name.Split(new char[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
+                            string sourceurl = "";
+                            sourceurl = "https://rule34.xxx/index.php?page=post&s=view&id=";
+                            sourceurl += Path.GetFileNameWithoutExtension(filecontents[^1]);
+                            DB.AddPrimarySource(HashItem.Item1.FullName, sourceurl);
+                        }
+                        else if (HashItem.Item1.Name.Contains("e621"))
+                        {
+                            string[] filecontents = HashItem.Item1.Name.Split(new char[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
+                            string sourceurl = "";
+                            sourceurl = "https://e621.net/posts/";
+                            sourceurl += Path.GetFileNameWithoutExtension(filecontents[^1]);
+                            DB.AddPrimarySource(HashItem.Item1.FullName, sourceurl);
+                        }
+                        else if (HashItem.Item1.Name.Contains("Danbooru") || HashItem.Item1.Name.Contains("danbooru"))
+                        {
+                            string[] filecontents = HashItem.Item1.Name.Split(new char[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
+                            string sourceurl = "";
+                            sourceurl = "https://danbooru.donmai.us/posts/";
+                            sourceurl += Path.GetFileNameWithoutExtension(filecontents[^1]);
+                            DB.AddPrimarySource(HashItem.Item1.FullName, sourceurl);
+                        }
+
+                        if (VideoTypes.Contains(HashItem.Item1.Extension))
+                        {
+                            using ShellObject shell = ShellObject.FromParsingName(HashItem.Item1.FullName);
+                            double l = 0;
+                            var dur = shell.Properties.System.Media.Duration.ValueAsObject;
+                            if (dur != null)
+                            {
+                                l = TimeSpan.FromTicks((long)(ulong)dur).TotalSeconds;
+                            }
+
+                            int Duration = (int)Math.Floor(l);
+
+                            float rateob = 0.0F;
+                            var rate = shell.Properties.System.Video.FrameRate.ValueAsObject;
+                            if (rate != null)
+                            {
+                                var ratefl = (float)(uint)rate;
+                                rateob = ratefl / (float)1000;
+                            }
+
+                            var frameheight = shell.Properties.System.Video.FrameHeight.ValueAsObject;
+                            int frameh = 0;
+                            if (frameheight != null)
+                            {
+                                frameh = (int)(uint)frameheight;
+                            }
+
+                            var framewidth = shell.Properties.System.Video.FrameWidth.ValueAsObject;
+                            int framew = 0;
+                            if (framewidth != null)
+                            {
+                                framew = (int)(uint)framewidth;
+                            }
+
+                            var audio = shell.Properties.System.Audio.ChannelCount.ValueAsObject;
+                            int audioob = 0;
+                            if (audio != null)
+                            {
+                                audioob = (int)(uint)audio;
+                            }
+
+                            DB.Updatephash(HashItem.Item1.FullName, new byte[40]);
+                            DB.UpdateCorrelated(HashItem.Item1.FullName);
+                            DB.UpdateHeightAndWidth(HashItem.Item1.FullName, frameh, framew);
+                            DB.UpdateVideoItems(HashItem.Item1.FullName, true, audioob > 0, Duration, rateob);
+
+                            ImportThumbnail(HashItem.Item1.FullName, shell);
+                        }
+                        else if(HashItem.Item1.Extension == ".gif")
+                        {
+                            //string filePath = @"Y:\Media\GIF\yah-buoy_Zelda_fbnjwl.gif";
+                            int animationDuration = 0;
+                            bool animated = false;
+                            int height = 0;
+                            int width = 0;
+                            float rate = 0.0F;
+
+                            using (var image = System.Drawing.Image.FromFile(HashItem.Item1.FullName))
+                            {
+                                height = image.Height;
+                                width = image.Width;
+
+                                if (ImageAnimator.CanAnimate(image))
+                                {
+                                    //Get frames  
+                                    var dimension = new System.Drawing.Imaging.FrameDimension(image.FrameDimensionsList[0]);
+                                    int frameCount = image.GetFrameCount(dimension);
+                                    var minimumFrameDelay = (1000.0 / 60);
+                                    var duration = 0;                                        
+
+                                    for (int i = 0; i < frameCount; i++)
+                                    {
+
+                                        var delayPropertyBytes = image.GetPropertyItem(20736).Value;
+                                        var frameDelay = BitConverter.ToInt32(delayPropertyBytes, i * 4) * 10;
+                                        // Minimum delay is 16 ms. It's 1/60 sec i.e. 60 fps
+                                        duration += (frameDelay < minimumFrameDelay ? (int)minimumFrameDelay : frameDelay);
+                                        rate = (frameDelay == 0 ? 0 : 1 / frameDelay);
+                                    }
+
+                                    animationDuration = (duration / 1000);
+                                    rate = (float)frameCount / ((float)duration / (float)1000);
+                                    animated = true;
+                                }
+                            }
+
+                            DB.UpdateVideoItems(HashItem.Item1.FullName, animated, false, animationDuration, rate);
+
+                            DB.UpdateHeightAndWidth(HashItem.Item1.FullName, height, width);
+                            //Logger.Write("Importing HxW: " + height.ToString() + "x" + width.ToString() + " for image: " + HashItem.Item1.Name + " into database");
+
+                            using(ShellObject shell = ShellObject.FromParsingName(HashItem.Item1.FullName))
+                            {
+                                ImportThumbnail(HashItem.Item1.FullName, shell);
+                            }
+                                
+                            //Logger.Write("Generating Thumbnail for " + HashItem.Item1.Name);
+
+                            GeneratePHash(HashItem.Item1.FullName);
+                            //Logger.Write("Generating PHash for " + HashItem.Item1.Name);
+                        }
+                        else
+                        {
+                            try
+                            {
+                                using var imageStream = File.OpenRead(HashItem.Item1.FullName);
+                                var decoder = BitmapDecoder.Create(imageStream, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.Default);
+                                DB.UpdateHeightAndWidth(HashItem.Item1.FullName, decoder.Frames[0].PixelHeight, decoder.Frames[0].PixelWidth);
+                                //Logger.Write("Importing HxW: " + decoder.Frames[0].PixelHeight.ToString() + "x" + decoder.Frames[0].PixelWidth.ToString() + " for image: " + HashItem.Item1.Name + " into database");
+                            }
+                            catch { }
+
+                            DB.UpdateVideoItems(HashItem.Item1.FullName, false, false, 0, 0);
+
+                            using (ShellObject shell = ShellObject.FromParsingName(HashItem.Item1.FullName))
+                            {
+                                ImportThumbnail(HashItem.Item1.FullName, shell);
+                            }
+
+                            GeneratePHash(HashItem.Item1.FullName);
+                            //Logger.Write("Generating PHash for " + HashItem.Item1.Name);
+                        }
+                        
+                    }
+                }
+                tbi.ShowBalloonTip("Import", "Import Completed", BalloonIcon.None);
+                newHashes.Clear();
             }
         }
 
         public static string[] GenerateHash(string videopath)
         {
-            using FileStream fs = new FileStream(videopath, FileMode.Open)
+            using FileStream fs = new(videopath, FileMode.Open)
             {
                 Position = 0
             };
@@ -583,7 +587,7 @@ namespace Paiz
 
             //ImagePaths = DB.GetAllImageThumbnailItems((int)OrderBY.DateModified, false);
             //ImagePaths = DB.GetAllPaths((int)OrderBY.DateModified, false);
-            FilteredImagePaths = ImagePaths = DB.GetAllImageItems((int)OrderBY.ID, true);
+            FilteredImagePaths = ImagePaths = DB.GetAllImageItems((int)OrderBY.ID, false);
             SearchCount.Content = FilteredImagePaths.Count.ToString();
 
             PopulateThumbnailGrid(FilteredImagePaths);
@@ -1134,7 +1138,7 @@ namespace Paiz
                                 }
                                 else
                                 {
-                                    Logger.Write("File Too Large");                            
+                                    Logger.Write("File Too Large");
                                 }
                                 
                             }
@@ -1168,10 +1172,12 @@ namespace Paiz
                                     if (otherprimary.Contains("e621"))
                                     {
                                         DB.AddNonPrimarySource(imgs[index].path, "https:" + searchResults.Matches[Match].Url);
+                                        DB.UpdateBooruTagged(imgs[index].path, true);
                                     }
                                     else if(otherprimary == "")
                                     {
                                         DB.AddPrimarySource(imgs[index].path, "https:" + searchResults.Matches[Match].Url);
+                                        DB.UpdateBooruTagged(imgs[index].path, true);
                                     }
                                     else if(otherprimary.Contains("danbooru"))
                                     {
@@ -1180,6 +1186,7 @@ namespace Paiz
                                     else
                                     {
                                         DB.AddPrimarySource(imgs[index].path, "https:" + searchResults.Matches[Match].Url);
+                                        DB.UpdateBooruTagged(imgs[index].path, true);
                                     }
                                 }
                             }
@@ -1194,7 +1201,7 @@ namespace Paiz
                     IQDBItem.Header = "IQDB (" + (index + 1).ToString() + @" / " + imgs.Count.ToString() + ")";
                 }
 
-                //TrayIcon.ShowBalloonTip(10000, "IQDB", "Complete", System.Windows.Forms.ToolTipIcon.Info);
+                tbi.ShowBalloonTip("IDQB", "IQDB Completed", BalloonIcon.None);
             }
             else
             {
@@ -1248,7 +1255,153 @@ namespace Paiz
                 CorrelatedImages.Add(UncorrelatedImages[i]);
             }
 
-            //TrayIcon.ShowBalloonTip(10000, "Dupes", "Complete", System.Windows.Forms.ToolTipIcon.Info);
+            tbi.ShowBalloonTip("Dupes", "Dupes Processed", BalloonIcon.None);
+        }
+
+        private void BooruAuto_Click(object sender, RoutedEventArgs e)
+        {
+            BooruAutoTaggerWorker.RunWorkerAsync();
+        }
+        private void BooruAutoTaggerWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            BooruAuto.Header = "Auto Booru Tag (" + (e.ProgressPercentage + 1).ToString() + @" / 300)";
+        }
+
+        private async void BooruAutoTaggerWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            Logger.Write("Started Booru Auto Tagger");
+            List<ImageItem> NonAutoTaggedImages = DB.GetBooruUntaggedItems();
+
+            for (int i = 0; i < NonAutoTaggedImages.Count; i++)
+            {
+                if (NonAutoTaggedImages[i].sources.Count > 0)
+                {
+                    foreach (string source in NonAutoTaggedImages[i].sources)
+                    {
+                        SearchResult res;
+                        if (source.Contains("danbooru") || source.Contains("Danbooru"))
+                        {
+                            try
+                            {
+                                string id = source[33..];
+
+                                BooruSharp.Booru.DanbooruDonmai danb = new();
+                                res = await danb.GetPostByIdAsync(int.Parse(id));
+
+                                res.Tags.Append("Hentai");
+                            }
+                            catch(Exception ex)
+                            {
+                                Logger.Write("Error Getting Tags from source: " + source);
+                                continue;
+                            }
+                        }
+                        else if (source.Contains("e621"))
+                        {
+                            try
+                            {
+                                string id = source[23..];
+
+                                BooruSharp.Booru.E621 furry = new();
+                                res = await furry.GetPostByIdAsync(int.Parse(id));
+
+                                res.Tags.Append("Hentai");
+                                res.Tags.Append("Furry");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Write("Error Getting Tags from source: " + source);
+                                continue;
+                            }
+                        }
+                        else if (source.Contains("rule34.xxx"))
+                        {
+                            try
+                            {
+                                string id = source[49..];
+
+                                BooruSharp.Booru.Rule34 rule34xxx = new();
+                                res = await rule34xxx.GetPostByIdAsync(int.Parse(id));
+
+                                res.Tags.Append("Hentai");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Write("Error Getting Tags from source: " + source);
+                                continue;
+                            }
+                        }
+                        else if (source.Contains("realbooru"))
+                        {
+                            try
+                            {
+                                string id = source[56..];
+
+                                BooruSharp.Booru.Realbooru realb = new BooruSharp.Booru.Realbooru();
+                                res = await realb.GetPostByIdAsync(int.Parse(id));
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Write("Error Getting Tags from source: " + source);
+                                continue;
+                            }
+                        }
+                        else if (source.Contains("Gelbooru") || source.Contains("gelbooru"))
+                        {
+                            try
+                            {
+                                string id = source[51..];
+
+                                BooruSharp.Booru.Gelbooru gelb = new BooruSharp.Booru.Gelbooru();
+                                res = await gelb.GetPostByIdAsync(int.Parse(id));
+
+                                res.Tags.Append("Hentai");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Write("Error Getting Tags from source: " + source);
+                                continue;
+                            }
+                        }
+                        else
+                        {
+                            continue;
+                        }
+
+                        foreach (string Tag in res.Tags)
+                        {
+                            int sourcenumber = MediaTagPage.GetBooruUrl(source);
+                            int PodoboTagId = DB.GetTagIdfromTagMap(Tag, sourcenumber);
+                            if (PodoboTagId == -1) //If Tag Currently isn't in Booru Tag map
+                            {
+                                if(!DB.CheckIfProcessingCompleted(Tag, sourcenumber)) //If We Haven't already processed this tag (can be processed but not in Map if Ignored)
+                                {
+                                    if (!DB.CheckIfPostProcessingExists(NonAutoTaggedImages[i].hash, Tag, sourcenumber))
+                                    {
+                                        DB.AddRowToPostprocessingTable(NonAutoTaggedImages[i].hash, Tag, sourcenumber);
+                                    }
+                                }                                
+                            }
+                            else
+                            {
+                                DB.AddTagByID(NonAutoTaggedImages[i].path, PodoboTagId);
+                            }
+                        }
+                        System.Threading.Thread.Sleep(2000);
+                    }
+                }
+
+                DB.UpdateBooruTagged(NonAutoTaggedImages[i].path, true);
+                await Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() => { BooruAuto.Header = "Auto Booru Tag (" + (i + 1).ToString() + @" / " + NonAutoTaggedImages.Count.ToString() + ")"; }));
+                
+            }
+            tbi.ShowBalloonTip("Booru Auto Tagger", "Booru Auto Tagger Completed", BalloonIcon.None);
+        }
+
+        private void ExportMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            Logger.Write("Exporting Database");
+            DB.Backup();
         }
 
         #endregion
@@ -1297,10 +1450,10 @@ namespace Paiz
 
         #region Closing Functions
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs e)
         {
-            //AlwaysClosingJobs();
-            //ClosingJob();
+            AlwaysClosingJobs();
+            ClosingJob();
             tbi.Dispose();
             //DB.Disconnect();
             DB.SQLiteClose();
@@ -1390,10 +1543,10 @@ namespace Paiz
                     DB.UpdateClosingJob(JobtoPerform + 1);
                     break;
                 case 2:
-                    //2. Update Danbooru sources to primary if necessary
-                    //Logger.Write("Updating Danbooru Sources to primary");
-                    //List<Tuple<string, string>> NonPrimaryDanbooruSources = DB.GetNonPrimaryDanbooruSource();
-                    //foreach(Tuple<string, string> danbooru in NonPrimaryDanbooruSources)
+                    //2. Remove Duplicate Sources
+                    //Logger.Write("Removing Duplicate Sources");
+                    //List<Tuple<string, string>> NonPrimaryDanbooruSources = DB.get
+                    //foreach (Tuple<string, string> danbooru in NonPrimaryDanbooruSources)
                     //{
                     //    string otherprimary = DB.GetPrimarySource(danbooru.Item1);
                     //    if (otherprimary == danbooru.Item2)
@@ -1408,9 +1561,9 @@ namespace Paiz
                     //    {
                     //        DB.ChangePrimarySource(danbooru.Item1, otherprimary, danbooru.Item2);
                     //    }
-                        
+
                     //}
-                    DB.UpdateClosingJob(JobtoPerform + 1);
+                    //DB.UpdateClosingJob(JobtoPerform + 1);
                     break;
                 case 3:
                     //3. Process need phashes
@@ -1526,13 +1679,14 @@ namespace Paiz
                     //9. Database Export
                     //TrayIcon.BalloonTipTitle = "Closing Job 9";
                     //TrayIcon.BalloonTipText = "Exporting Database";
-                    //Logger.Write("Exporting Database");
+                    Logger.Write("Exporting Database");
 
-                    //if(DateTime.Now.Hour < 21)
-                    //{
-                    //    DB.ExportDatabase();
-                    //    DB.UpdateClosingJob(JobtoPerform + 1);
-                    //}                    
+                    if (DateTime.Now.Hour < 21)
+                    {
+                        //DB.SQLiteClose();
+                        DB.Backup();
+                        DB.UpdateClosingJob(JobtoPerform + 1);
+                    }
                     break;
                 case 10:
                     //10. Rotate Image Tagged with rotatecw
@@ -1738,75 +1892,89 @@ namespace Paiz
             //    }
             //}
 
-            DB.SQLiteConnect();
-            //DB.CreateSQLiteTables();
+            //DB.SQLiteConnect();
+            ////DB.CreateSQLiteTables();
 
-            WindowState = WindowState.Minimized;
-            Logger.Write("Importing External File Data");
+            //WindowState = WindowState.Minimized;
+            //Logger.Write("Importing External File Data");
 
-            string ImportData = "";
-            string FileToRead = @"C:\Users\Chris\AppData\Roaming\Paiz\Backup\IdahoBackup-tag_data_10-7-2021.txt";
-            using (StreamReader Reader = new StreamReader(FileToRead))
-            {
-                ImportData = Reader.ReadToEnd();
-            }
-            string[] DataLines = ImportData.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-            for (int i = 2; i <= DataLines.Length - 1; i++)
-            {
-                string[] LineColumns = DataLines[i].Split(new string[] { "||" }, StringSplitOptions.None);
-
-                DB.TagDataInsert(int.Parse(LineColumns[0]), LineColumns[1], LineColumns[2], int.Parse(LineColumns[3]), int.Parse(LineColumns[4]));
-                
-                //DB.SiblingDataInsert(int.Parse(LineColumns[0]), int.Parse(LineColumns[1]), LineColumns[2] == "True");
-
-                //DB.ParentDataInsert(int.Parse(LineColumns[0]), int.Parse(LineColumns[1]), LineColumns[2] == "True");
-
-                //DB.DupesInsert(LineColumns[1], LineColumns[2], float.Parse(LineColumns[3]), LineColumns[4] == "True");
-
-                //DB.DeletedImagesInsert(LineColumns[1], LineColumns[2] == "True", DateTime.Parse(LineColumns[3]));
-
-                //DB.BooruTagMapInsert(LineColumns[0], int.Parse(LineColumns[1]));
-
-                //string[] sources = DB.ImageDataSelectSources(LineColumns[0]);
-                //string source;
-                //if(sources.Length < 1)
-                //{
-                //    source = " " + LineColumns[1] + " ";
-                //}
-                //else
-                //{
-                //    if(LineColumns[2] == "True")
-                //    {
-                //        source = " " + LineColumns[1] + " ";
-                //        foreach (string s in sources)
-                //        {
-                //            source += s + " ";
-                //        }
-                //    }
-                //    else
-                //    {
-                //        source = " ";
-                //        foreach (string s in sources)
-                //        {
-                //            source += s + " ";
-                //        }
-                //        source += LineColumns[1] + " ";
-                //    }
-                //}
-
-                //DB.ImageDataUpdateSources(LineColumns[0], source);
-
-                //DB.ImageDataInsert(LineColumns[0], LineColumns[1], LineColumns[2], LineColumns[3], DateTime.Parse(LineColumns[4]), DateTime.Parse(LineColumns[5]), int.Parse(LineColumns[6]), int.Parse(LineColumns[7]), int.Parse(LineColumns[8]), LineColumns[9], LineColumns[17] == "True" ? true : false, LineColumns[11], LineColumns[10] == "True" ? true : false, LineColumns[12] == "True" ? true : false, LineColumns[13] == "True" ? true : false, int.Parse(LineColumns[14]), float.Parse(LineColumns[15]), LineColumns[16]);
-            }
-            //foreach (ImageThumbnailItem image in ImagePaths)
+            //string ImportData = "";
+            //string FileToRead = @"C:\Users\Chris\AppData\Roaming\Paiz\Backupphashes.txt";
+            //using (StreamReader Reader = new StreamReader(FileToRead))
             //{
-            //    DB.UpdateIqdb(DB.GetHash(image.path));
-            //    Logger.Write("Mark IQDB as found for file: " + image.path);
+            //    ImportData = Reader.ReadToEnd();
+            //}
+            //string[] DataLines = ImportData.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            //for (int i = 2; i <= DataLines.Length - 1; i++)
+            //{
+            //    string[] LineColumns = DataLines[i].Split(new string[] { "||" }, StringSplitOptions.None);
+
+            //    DB.Updatephash(DB.GetPath(LineColumns[0]), GetBytes(LineColumns[1]));
+
+            //    //DB.TagDataInsert(int.Parse(LineColumns[0]), LineColumns[1], LineColumns[2], int.Parse(LineColumns[3]), int.Parse(LineColumns[4]));
+
+            //    //DB.SiblingDataInsert(int.Parse(LineColumns[0]), int.Parse(LineColumns[1]), LineColumns[2] == "True");
+
+            //    //DB.ParentDataInsert(int.Parse(LineColumns[0]), int.Parse(LineColumns[1]), LineColumns[2] == "True");
+
+            //    //DB.DupesInsert(LineColumns[1], LineColumns[2], float.Parse(LineColumns[3]), LineColumns[4] == "True");
+
+            //    //DB.DeletedImagesInsert(LineColumns[1], LineColumns[2] == "True", DateTime.Parse(LineColumns[3]));
+
+            //    //DB.BooruTagMapInsert(LineColumns[0], int.Parse(LineColumns[1]));
+
+            //    //string[] sources = DB.ImageDataSelectSources(LineColumns[0]);
+            //    //string source;
+            //    //if (sources.Length < 1)
+            //    //{
+            //    //    source = " " + LineColumns[1] + " ";
+            //    //}
+            //    //else
+            //    //{
+            //    //    if (LineColumns[2] == "True")
+            //    //    {
+            //    //        source = " " + LineColumns[1] + " ";
+            //    //        foreach (string s in sources)
+            //    //        {
+            //    //            source += s + " ";
+            //    //        }
+            //    //    }
+            //    //    else
+            //    //    {
+            //    //        source = " ";
+            //    //        foreach (string s in sources)
+            //    //        {
+            //    //            source += s + " ";
+            //    //        }
+            //    //        source += LineColumns[1] + " ";
+            //    //    }
+            //    //}
+
+            //    //DB.ImageDataUpdateSources(LineColumns[0], source);
+
+            //    //DB.ImageDataInsert(LineColumns[0], LineColumns[1], LineColumns[2], LineColumns[3], DateTime.Parse(LineColumns[4]), DateTime.Parse(LineColumns[5]), int.Parse(LineColumns[6]), int.Parse(LineColumns[7]), int.Parse(LineColumns[8]), LineColumns[9], LineColumns[17] == "True" ? true : false, LineColumns[11], LineColumns[10] == "True" ? true : false, LineColumns[12] == "True" ? true : false, LineColumns[13] == "True" ? true : false, int.Parse(LineColumns[14]), float.Parse(LineColumns[15]), LineColumns[16]);
             //}
 
 
 
-            DB.SQLiteClose();
+            //DB.SQLiteClose();
+
+            //List<ImageItem> hh = DB.GetCorrelatedImages();
+            //Bitmap BMP = (Bitmap)System.Drawing.Image.FromFile(hh[0].path);
+            //Digest a = ImagePhash.ComputeDigest(BMP.ToLuminanceImage());
+            //BMP.Dispose();
+            //var q = ImagePhash.GetCrossCorrelation(hh[0].phash, hh[1].phash);
+
+            //DB.Connect();
+
+            //DB.ExportPhashes();
+
+            //DB.Disconnect();
+        }
+
+        public static byte[] GetBytes(string value)
+        {
+            return value.Split(",", StringSplitOptions.RemoveEmptyEntries).Select(s => byte.Parse(s)).ToArray();
         }
 
         public void TabItem_MouseDown(object sender, MouseButtonEventArgs e)

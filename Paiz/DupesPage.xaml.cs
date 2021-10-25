@@ -60,7 +60,7 @@ namespace Paiz
             else
             {
                 ImageDetails.Text = "No Duplicates Found";
-            }            
+            }
         }
 
         private void UpdateImageDetails(ImageItem II)
@@ -70,6 +70,7 @@ namespace Paiz
             ImageDetails.Text += "H x W: " + II.height.ToString() + " x " + II.width.ToString() + Environment.NewLine;
             ImageDetails.Text += "Date Modified: " + II.date_modfied.ToShortDateString() + Environment.NewLine;
             ImageDetails.Text += "Date Added: " + II.date_added.ToShortDateString() + Environment.NewLine;
+            ImageDetails.Text += "Score: " + ImagePaths[index].score.ToString("F5") + Environment.NewLine;
             if (DB.CheckIfHashHasBeenDeletedBefore(II.path))
             {
                 ImageDetails.Text += "* marked for deletion *" + Environment.NewLine;
@@ -290,6 +291,7 @@ namespace Paiz
                 if (string.IsNullOrEmpty(ImageFile2.primary_source))
                 {
                     DB.AddPrimarySource(pathtokeep, ImageFile.primary_source);
+                    DB.UpdateBooruTagged(pathtokeep, false);
                 }
                 if (ImageFile2.rating < 1)
                 {
@@ -305,6 +307,7 @@ namespace Paiz
                 if (string.IsNullOrEmpty(ImageFile.primary_source))
                 {
                     DB.AddPrimarySource(pathtokeep, ImageFile2.primary_source);
+                    DB.UpdateBooruTagged(pathtokeep, false);
                 }
                 if (ImageFile.rating < 1)
                 {

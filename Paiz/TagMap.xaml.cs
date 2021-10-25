@@ -117,7 +117,7 @@ namespace Paiz
                 TSSB.PreviewKeyDown += new KeyEventHandler(TSSB_Enter);
                 Grid.SetColumn(TSSB, 3);
                 a.Children.Add(TSSB);
-                int tagid = DB.GetTagIdfromTagMap(Tag);
+                int tagid = DB.GetTagIdfromTagMap(Tag, GetBooruUrl(BooruResults.Source));
 
                 ComboBox CCB = new();
                 foreach (string cat in CategoryItem.CategoryList)
@@ -205,5 +205,41 @@ namespace Paiz
             }
             Close();
         }
+        private int GetBooruUrl(string url)
+        {
+            if (url.Contains("danbooru") || url.Contains("Danbooru"))
+            {
+                return (int)BooruUrl.Danbooru;
+            }
+            else if (url.Contains("e621"))
+            {
+                return (int)BooruUrl.e621;
+            }
+            else if (url.Contains("rule34.xxx"))
+            {
+                return (int)BooruUrl.rule34;
+            }
+            else if (url.Contains("realbooru"))
+            {
+                return (int)BooruUrl.realbooru;
+            }
+            else if (url.Contains("Gelbooru") || url.Contains("gelbooru"))
+            {
+                return (int)BooruUrl.Gelbooru;
+            }
+            else
+            {
+                return -1;
+            }
+        }
     }
+}
+
+enum BooruUrl
+{
+    Danbooru,   //0
+    e621,       //1
+    rule34,     //2
+    Gelbooru,   //3
+    realbooru   //4
 }

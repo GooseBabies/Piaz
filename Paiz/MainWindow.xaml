@@ -31,18 +31,22 @@
                 <ColumnDefinition Width="26"/>
             </Grid.ColumnDefinitions>
             <Menu x:Name="Menubar" Visibility="Hidden" Grid.Column="0">
+                <!-- Navigation -->
                 <MenuItem x:Name="LastVideoMenuItem" Header="Last File" Height="20" BorderThickness="0" Click="LastVideoMenuItem_Click"/>
                 <MenuItem x:Name="RandomMenuItem" Header="Random File" HorizontalContentAlignment="Left" BorderThickness="0" Click="RandomMenuItem_Click"/>
                 <MenuItem x:Name="FirstUntaggedItem" Header="First Untagged" BorderThickness="0" Click="FirstUntaggedItem_Click"/>
                 <MenuItem x:Name="FirstUnratedItem" Header="First Unrated" BorderThickness="0" Click="FirstUnratedItem_Click"/>
                 <MenuItem x:Name="FirstUnLinkedItem" Header="First Unlinked" BorderThickness="0" Click="FirstUnLinkedItem_Click"/>
-                <MenuItem x:Name="TagManagerMenuItem" Header="All Tags" BorderThickness="0" Click="TagManagerMenuItem_Click"/>
-                <MenuItem x:Name="Slideshow" Header="Slideshow" BorderThickness="0" Click="Slideshow_Click"/>
-                <!--<MenuItem x:Name="ExportMenuItem" Header="Export Database" Click="ExportMenuItem_Click" Foreground="White"/>-->
+                <!-- Tools -->
+                <MenuItem x:Name="TagManagerMenuItem" Header="All Tags" BorderThickness="0" Click="TagManagerMenuItem_Click"/>                
+                <MenuItem x:Name="ExportMenuItem" Header="Backup Database" Click="ExportMenuItem_Click"/>
                 <MenuItem x:Name="IQDBItem" Header="IQDB" BorderThickness="0" Click="IQDBItem_Click"/>
                 <MenuItem x:Name="DupesProcessing" Header="Dupes Processing" BorderThickness="0" Click="DupesProcessing_Click"/>
                 <MenuItem x:Name="DupeComparison" Header="Dupes" BorderThickness="0" Click="DupeComparison_Click"/>
                 <MenuItem x:Name="ImportFiles" Header="Import Files" BorderThickness="0" Click="ImportFiles_Click"/>
+                <MenuItem x:Name="BooruAuto" Header="Auto Booru Tag" BorderThickness="0" Click="BooruAuto_Click"/>
+                <!-- Features -->
+                <MenuItem x:Name="Slideshow" Header="Slideshow" BorderThickness="0" Click="Slideshow_Click"/>
                 <MenuItem x:Name="TextFFME" Header="FFME" BorderThickness="0" Click="TextFFME_Click"/>
             </Menu>
             

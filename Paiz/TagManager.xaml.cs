@@ -769,28 +769,27 @@ namespace Paiz
         {
             if (SourceURL.Text.ToLower().Contains("http"))
             {
-                if (!DB.CheckIfSourceExists(MediaFile.path, SourceURL.Text))
+                if(SourcePrimary.IsChecked == true)
                 {
-                                        
-                    if (SourcePrimary.IsChecked == true)
+                    DB.AddPrimarySource(MediaFile.path, SourceURL.Text);
+                    DB.UpdateBooruTagged(MediaFile.path, false);
+                    ImageSources.Insert(0, SourceURL.Text);
+                }
+                else
+                {
+                    if (DB.GetPrimarySource(MediaFile.path) == "")
                     {
                         DB.AddPrimarySource(MediaFile.path, SourceURL.Text);
-                        ImageSources.Insert(0, SourceURL.Text);
+                        DB.UpdateBooruTagged(MediaFile.path, false);
                     }
                     else
                     {
-                        if (DB.GetPrimarySource(MediaFile.path) == "")
-                        {
-                            DB.AddPrimarySource(MediaFile.path, SourceURL.Text);
-                        }
-                        else
-                        {
-                            DB.AddNonPrimarySource(MediaFile.path, SourceURL.Text);
-                        }
-                        ImageSources.Add(SourceURL.Text);
+                        DB.AddNonPrimarySource(MediaFile.path, SourceURL.Text);
+                        DB.UpdateBooruTagged(MediaFile.path, false);
                     }
-                    UpdateSourcesDisplay();
+                    ImageSources.Add(SourceURL.Text);
                 }
+                UpdateSourcesDisplay();
             }
         }
 
@@ -903,6 +902,7 @@ namespace Paiz
             if (NoOldPrimary)
             {
                 DB.AddPrimarySource(MediaFile.hash, NewPrimaryUrl.Text);
+                DB.UpdateBooruTagged(MediaFile.path, false);
             }
             else
             {

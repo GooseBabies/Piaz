@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace Paiz
 {
@@ -8,19 +9,18 @@ namespace Paiz
         private static readonly string LoggerLocation = "C:\\Users\\Chris\\AppData\\Roaming\\Paiz\\Logger";
         private static DateTime _now = DateTime.Now;
         private static readonly string Filename = _now.Month.ToString() + " - " + _now.Year.ToString() + " - log.txt";
+        private static StringBuilder LogAssembler = new();
+        const int LinesBeforWrite = 300;
 
         public static void Write(string message)
         {
             try
             {
-                string Filepath = Path.Combine(LoggerLocation, Filename);
-                if (!File.Exists(Filepath))
+                //LogAssembler = LogAssembler.AppendLine(Environment.NewLine);
+                LogAssembler = LogAssembler.AppendLine("[" + DateTime.Now.ToShortDateString() + " " + DateTime.Now.ToLongTimeString() + "\t" + message);
+                if(LogAssembler.Length > LinesBeforWrite)
                 {
-                    File.Create(Filepath);
-                }
-                using (StreamWriter writer = File.AppendText(Filepath))
-                {
-                    Log(message, writer);
+                    Log();
                 }
             }
             catch (Exception e)
@@ -29,12 +29,18 @@ namespace Paiz
             }
         }
 
-        static private void Log(string msg, TextWriter writer)
+        static public void Log()
         {
             try
             {
-                writer.Write(Environment.NewLine);
-                writer.Write("[{0} {1}]\t{2}", DateTime.Now.ToShortDateString(), DateTime.Now.ToLongTimeString(), msg);
+                string Filepath = Path.Combine(LoggerLocation, Filename);
+                if (!File.Exists(Filepath))
+                {
+                    File.Create(Filepath);
+                }
+                using StreamWriter writer = File.AppendText(Filepath);
+                writer.WriteLine(LogAssembler.ToString());
+                LogAssembler.Clear();
             }
             catch (Exception e)
             {

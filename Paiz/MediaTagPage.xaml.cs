@@ -605,6 +605,7 @@ namespace Paiz
                     if (PrimarySourceAddTextBox.Text.ToLower().Contains("http"))
                     {
                         DB.AddPrimarySource(MediaPaths[index].path, PrimarySourceAddTextBox.Text);
+                        DB.UpdateBooruTagged(MediaPaths[index].path, false);
                         MediaPaths[index].primary_source = PrimarySourceAddTextBox.Text;
                     }
                 }
@@ -614,6 +615,7 @@ namespace Paiz
                     {
                         string newlink = PrimarySourceAddTextBox.Text;
                         DB.AddPrimarySource(MediaPaths[index].path, newlink);
+                        DB.UpdateBooruTagged(MediaPaths[index].path, false);
                         MediaPaths[index].primary_source = newlink;
                     }
                 }
@@ -805,9 +807,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -833,9 +835,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source),  DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -861,9 +863,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -889,9 +891,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -917,9 +919,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -945,9 +947,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -973,9 +975,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -1001,9 +1003,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -1029,9 +1031,9 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
@@ -1057,15 +1059,15 @@ namespace Paiz
                         AddTags(TI.Item1, TI.Item2);
                         if (TI.Item3 != "")
                         {
-                            if (DB.GetTagIdfromTagMap(TI.Item3) == -1)
+                            if (DB.GetTagIdfromTagMap(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source)) == -1)
                             {
-                                DB.AddRowToTagMapTable(TI.Item3, DB.GetTagid(TI.Item1));
+                                DB.AddRowToTagMapTable(TI.Item3, GetBooruUrl(MediaPaths[index].primary_source), DB.GetTagid(TI.Item1));
                             }
                         }
                     }
                     AddingTagUIUpdate();
                 }
-            }            
+            }
         }
 
         private void ContextGetTags(object sender, RoutedEventArgs e)
@@ -1076,6 +1078,34 @@ namespace Paiz
         private void GetTagsButton_Click(object sender, RoutedEventArgs e)
         {
             GetTags();
+        }
+
+        public static int GetBooruUrl(string url)
+        {
+            if(url.Contains("danbooru") || url.Contains("Danbooru"))
+            {
+                return (int)BooruUrl.Danbooru;
+            }
+            else if (url.Contains("e621"))
+            {
+                return (int)BooruUrl.e621;
+            }
+            else if (url.Contains("rule34.xxx"))
+            {
+                return (int)BooruUrl.rule34;
+            }
+            else if (url.Contains("realbooru"))
+            {
+                return (int)BooruUrl.realbooru;
+            }
+            else if (url.Contains("Gelbooru") || url.Contains("gelbooru"))
+            {
+                return (int)BooruUrl.Gelbooru;
+            }
+            else
+            {
+                return -1;
+            }
         }
     }
 }
